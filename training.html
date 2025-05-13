@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Page</title>
+    <style>
+       /* General Page Styling */
+body {
+    font-family: 'Poppins', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(-45deg, #d2d8e4, #d2d8e4, #d2d8e4, #f2e3ec);
+    color: rgb(26, 9, 9);
+}
+
+.container {
+    width: 50%;
+    margin: 50px auto;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(240, 220, 220, 0.3);
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease-in-out;
+}
+
+.container:hover {
+    transform: scale(1.02);
+}
+
+h1, h2 {
+    font-weight: 700;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Buttons */
+button {
+    padding: 12px 24px;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px;
+    cursor: pointer;
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    color: rgb(255, 255, 255);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s;
+    box-shadow: 0px 5px 15px rgba(0, 123, 255, 0.4);
+}
+
+button:hover {
+    background: linear-gradient(90deg, #0056b3, #004080);
+    box-shadow: 0px 8px 20px rgba(0, 86, 179, 0.5);
+    transform: translateY(-2px);
+}
+
+/* Dropdowns and Inputs */
+select, input {
+    width: 60%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 2px solid #17065f;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: rgb(72, 9, 166);
+}
+
+select:hover, input:hover {
+    border-color: #007bff;
+}
+
+input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Webcam and Image Upload Section */
+video, canvas {
+    display: block;
+    margin: 20px auto;
+    border-radius: 10px;
+    border: 3px solid white;
+    box-shadow: 0px 5px 15px rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    .container {
+        width: 80%;
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+    }
+}
+.powered-by {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 25px;
+    font-weight: bold;
+    color: #2A5298;
+    text-align: center;
+}
+
+.blinking-text {
+    font-size: 30px;
+    font-weight: bold;
+    animation: blinkColors 1.5s infinite;
+}
+
+@keyframes blinkColors {
+    0% { color: #FF5733; }  /* Red */
+    25% { color: #33FF57; } /* Green */
+    50% { color: #3357FF; } /* Blue */
+    75% { color: #FF33A1; } /* Pink */
+    100% { color: #FF5733; } /* Back to Red */
+}
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Training Section</h1>
+        
+        <label for="branch-select">Select Branch:</label>
+        <select id="branch-select" onchange="fetchTables()">
+            <option value="">--Select Branch--</option>
+        </select>
+
+        <br><br>
+        
+        <label for="table-select">Available Tables:</label>
+        <select id="table-select">
+            <option value="">--Select Table--</option>
+        </select>
+
+        <br><br>
+                    <br><br>
+
+            <label for="table-name">Enter Table Name:</label>
+            <input type="text" id="table-name" placeholder="Example : Y23CSD" disabled>
+
+
+            <br><br>
+
+            <button id="create-table-btn">Create Table</button>
+
+        <button onclick="newEntry()">New Entry</button>
+        <br>
+        <label for="delete-type">Delete:</label>
+<select id="delete-type" onchange="handleDeleteSelection()">
+    <option value="">--Select--</option>
+    <option value="database">Database</option>
+    <option value="table">Table</option>
+    <option value="roll_number">Roll Number</option>
+</select>
+
+
+<div id="delete-options"></div>
+
+
+        <br><br>
+    </div>
+
+    <div id="delete-options"></div>
+
+    <br><br>
+    <div class="container">
+        <h2>Upload or Capture Image</h2>
+
+        <!-- File Upload Option -->
+        <input type="file" id="imageUpload" accept="image/*" multiple>
+
+        <button onclick="uploadImage()">Upload Image</button>
+
+        <br><br>
+
+        <!-- Webcam Capture Option -->
+        <video id="webcam" width="320" height="240" autoplay></video>
+        <button onclick="captureImage()">Capture from Webcam</button>
+        <canvas id="canvas" class="hidden"></canvas>
+
+        <br><br>
+
+        <!-- Submit Button -->
+        <button id="submit-btn">Submit</button>
+
+        <br><br>
+        <button onclick="window.location.href='index.html'">Back to Home</button>
+    </div>
+</div>
+<div class="powered-by">
+    <span>Powered by</span><br>
+    <span class="blinking-text">Department of DataScience</span>
+</div>
+    <script>
+        let savedRollNumber = null;
+
+        document.addEventListener("DOMContentLoaded", fetchBranches);
+
+        function fetchBranches() {
+    fetch("http://localhost:5000/get-branches")  // Ensure this URL is correct
+        .then(response => response.json())
+        .then(data => {
+            const branchSelect = document.getElementById("branch-select");
+            branchSelect.innerHTML = '<option value="">--Select Branch--</option>';
+            data.branches.forEach(branch => {
+                let option = document.createElement("option");
+                option.value = branch;
+                option.textContent = branch;
+                branchSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error("Error fetching branches:", error));
+}
+
+
+
+
+function fetchTables() {
+    const branchSelect = document.getElementById("branch-select");
+    const selectedBranch = branchSelect.value;
+
+    if (!selectedBranch) {
+        alert("Please select a branch.");
+        return;
+    }
+
+    fetch(`http://localhost:5000/get-tables?branch=${selectedBranch}`)
+        .then(response => response.json())
+        .then(data => {
+            const tableSelect = document.getElementById("table-select");
+            tableSelect.innerHTML = '<option value="">--Select Table--</option>';
+            
+            if (data.tables.length === 0) {
+                alert("No tables available for the selected branch.");
+            } else {
+                data.tables.forEach(table => {
+                    let option = document.createElement("option");
+                    option.value = table;
+                    option.textContent = table;
+                    tableSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error("Error fetching tables:", error));
+}
+document.addEventListener("DOMContentLoaded", function () {
+    const branchSelect = document.getElementById("branch-select");
+    const tableSelect = document.getElementById("table-select");
+    const tableNameInput = document.getElementById("table-name");
+
+    function updateTableNameInput() {
+        if (!branchSelect.value || tableSelect.value) {
+            tableNameInput.disabled = true;
+            tableNameInput.value = ""; // Clear input if disabled
+        } else {
+            tableNameInput.disabled = false;
+        }
+    }
+
+    branchSelect.addEventListener("change", updateTableNameInput);
+    tableSelect.addEventListener("change", updateTableNameInput);
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    function createTable() {
+        const branchSelect = document.getElementById("branch-select");
+        const tableSelect = document.getElementById("table-select");
+        const tableNameInput = document.getElementById("table-name");
+
+        
+    
+
+        if (!tableNameInput) {
+            console.error("Error: Table name input field not found.");
+            return;
+        }
+
+        const tableName = tableNameInput.value.trim();
+        const selectedBranch = branchSelect.value;
+        const selectedTable = tableSelect.value;
+
+        if (!selectedBranch) {
+            alert("Please select a branch.");
+            return;
+        }
+
+        if (selectedTable) {
+            alert("Deselect the table before creating a new one.");
+            return;
+        }
+
+        const tableNamePattern = /^(Y)\d{2}[A-Z]{3}$/;
+        if (!tableNamePattern.test(tableName)) {
+            alert("Invalid table name format! Use 'Y23CSE' format.");
+            return;
+        }
+
+        fetch("http://localhost:5000/create-table", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ branch: selectedBranch, table_name: tableName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert("Error: " + data.error);
+            } else {
+                alert("Table created successfully!");
+                fetchTables(); // Refresh tables list
+                tableNameInput.value = "";
+            }
+        })
+        .catch(error => console.error("Error creating table:", error));
+    }
+
+    // Assign function to button click
+    document.getElementById("create-table-btn").onclick = createTable;
+});
+
+
+
+function newEntry() {
+    let branch = document.getElementById('branch-select').value;
+    let table = document.getElementById('table-select').value;
+    
+    if (!branch) {
+        alert("Please select a branch.");
+        return;
+    }
+    
+    if (!table) {
+        alert("Please select or create a table.");
+        return;
+    }
+
+    let rollNumber = prompt("Enter roll number (e.g., y23cs123):");
+
+    if (!rollNumber) {
+        alert("Roll number cannot be empty!");
+        return;
+    }
+
+    // Roll number validation: yXXLLNNN (e.g., y23cs123)
+    const rollNumberPattern = /^(y|l)\d{2}[a-z]{2}\d{3}$/;
+
+    if (!rollNumberPattern.test(rollNumber)) {
+        alert("Invalid roll number format! Use 'y23cs123' format.");
+        return;
+    }
+    savedRollNumber = rollNumber;
+    // Sending data to backend
+    fetch('http://localhost:5000/add-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch, table, rollNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert("Error: " + data.error);
+        } else {
+            alert("New entry added successfully!");
+        }
+    })
+    .catch(error => console.error("Error adding entry:", error));
+}
+document.addEventListener("DOMContentLoaded", function () {
+    const deleteTypeSelect = document.getElementById("delete-type");
+    const deleteOptionsDiv = document.getElementById("delete-options");
+
+    let deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.style.marginTop = "10px";
+    deleteButton.onclick = deleteEntry;
+
+    function handleDeleteSelection() {
+        deleteOptionsDiv.innerHTML = ""; // Clear previous inputs
+
+        let selectedDeleteType = deleteTypeSelect.value;
+
+        if (!document.getElementById("branch-select").value) {
+            alert("Please select a branch first.");
+            deleteTypeSelect.value = ""; // Reset selection
+            return;
+        }
+
+        if (selectedDeleteType === "database") {
+            deleteOptionsDiv.innerHTML = "<p>Entire database for this branch will be deleted.</p>";
+        } 
+        else if (selectedDeleteType === "table") {
+            deleteOptionsDiv.innerHTML = "<p>Selected table will be deleted.</p>";
+        } 
+        else if (selectedDeleteType === "roll_number") {
+            if (!document.getElementById("table-select").value) {
+                alert("Please select a table first.");
+                deleteTypeSelect.value = ""; // Reset selection
+                return;
+            }
+            deleteOptionsDiv.innerHTML = `
+                <label for="roll-number">Enter Roll Number:</label>
+                <input type="text" id="roll-number" placeholder="y22cd095">
+            `;
+        }
+
+        // Append the delete button every time the selection changes
+        deleteOptionsDiv.appendChild(deleteButton);
+    }
+
+    function deleteEntry() {
+        let deleteType = deleteTypeSelect.value;
+        let branch = document.getElementById("branch-select").value;
+        let table = document.getElementById("table-select")?.value;
+        let rollNumber = document.getElementById("roll-number")?.value || "";
+
+        if (!deleteType) {
+            alert("Please select what you want to delete.");
+            return;
+        }
+        if (deleteType === "table" && !table) {
+            alert("Please select a table first.");
+            return;
+        }
+        if (deleteType === "roll_number" && !rollNumber) {
+            alert("Please enter a roll number first.");
+            return;
+        }
+
+        let password = prompt("Enter password to confirm deletion:");
+        if (password !== "datascience") {
+            alert("Incorrect password!");
+            return;
+        }
+
+        let data = { deleteType, branch, table, rollNumber, password };
+
+        fetch("http://localhost:5000/delete-entry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        })
+        .then(response => response.json())
+        .then(data => alert(data.message || data.error))
+        .catch(error => console.error("Error deleting entry:", error));
+        deleteTypeSelect.value = "";
+        document.getElementById("roll-number").value = "";
+        deleteOptionsDiv.removeChild(deleteButton);
+        fetchBranches()
+        fetchTables()
+    }
+
+    deleteTypeSelect.addEventListener("change", handleDeleteSelection);
+});
+navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                document.getElementById('webcam').srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Webcam access denied:", err);
+            });
+
+        function captureImage() {
+            let video = document.getElementById('webcam');
+            let canvas = document.getElementById('canvas');
+            let context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            let imageData = canvas.toDataURL('image/png');
+
+            fetch("http://127.0.0.1:5000/upload-webcam", {  
+                method: "POST",  
+                headers: { "Content-Type": "application/json" },  
+                body: JSON.stringify({ image: imageData })  
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("Error uploading webcam image:", error));
+        }
+
+        function uploadImage() {
+    let fileInput = document.getElementById("imageUpload");
+    let files = fileInput.files; // Get all selected files
+
+    if (files.length === 0) {
+        alert("Please select at least one image.");
+        return;
+    }
+
+    let formData = new FormData();
+    
+    // Append all selected images to the formData
+    for (let i = 0; i < files.length; i++) {
+        formData.append("files", files[i]);  // Keep the key name "files"
+    }
+
+    fetch("http://127.0.0.1:5000/upload-files", {  // Update endpoint to handle multiple files
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => alert(data.message))
+    .catch(error => console.error("Error uploading files:", error));
+}
+
+
+document.getElementById("submit-btn").addEventListener("click", function () {
+console.log(document.getElementById("submit-btn"));
+
+      
+const branch = document.getElementById("branch-select").value;
+const table = document.getElementById("table-select").value;
+roll_number = savedRollNumber;
+
+
+console.log(`Branch: ${branch}, Table: ${table}, RollNumber: ${roll_number}`); // Debugging
+
+        if (!branch || !table || !roll_number) {
+            alert("Branch, table, or roll number is missing. Please go back and select again.");
+            return;
+        }
+
+        // Send data to backend for cropping faces
+        fetch("http://127.0.0.1:5000/crop-faces", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ branch, table, roll_number }),
+        })
+        .then(response => response.json())
+        .then(data => alert(data.message || data.error))
+        .catch(error => console.error("Error cropping faces:", error));
+    });
+
+    </script>
+</body>
+</html>

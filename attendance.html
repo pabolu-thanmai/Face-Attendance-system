@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Page</title>
+    <style>
+        /* Consistent and Pleasant Color Palette */
+        :root {
+            --primary-color: #2a5298;
+            --secondary-color: #1e3c72;
+            --accent-color: #ff758c;
+            --text-light:  #e1f2f8;
+            --background-light: #b5eaff;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-light);
+            color: var(--primary-color);
+        }
+
+        .container {
+            width: 60%;
+            margin: 20px auto;
+            padding: 25px;
+            background: var(--text-light);
+            border-radius: 12px;
+            box-shadow: 0px 6px 20px var(--shadow-color);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .container:hover {
+            transform: scale(1.02);
+        }
+
+        h1, h2 {
+            color: var(--secondary-color);
+            letter-spacing: 1px;
+        }
+
+        select, input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0px 0px 10px var(--accent-color);
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            background: var(--primary-color);
+            color: var(--text-light);
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 4px 4px 10px var(--shadow-color);
+            outline: none;
+        }
+
+        button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 15px var(--shadow-color);
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 2px 2px 8px var(--shadow-color);
+        }
+
+        video {
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px var(--shadow-color);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 90%;
+                padding: 20px;
+            }
+
+            button {
+                width: 100%;
+                font-size: 16px;
+                padding: 10px;
+            }
+
+            select, input {
+                width: 100%;
+            }
+        }
+        .powered-by {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 25px;
+    font-weight: bold;
+    color: #2A5298;
+    text-align: center;
+}
+
+.blinking-text {
+    font-size: 30px;
+    font-weight: bold;
+    animation: blinkColors 1.5s infinite;
+}
+
+@keyframes blinkColors {
+    0% { color: #FF5733; }  /* Red */
+    25% { color: #33FF57; } /* Green */
+    50% { color: #3357FF; } /* Blue */
+    75% { color: #FF33A1; } /* Pink */
+    100% { color: #FF5733; } /* Back to Red */
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Testing Section</h1>
+        
+        <label for="branch-select">Select Branch:</label>
+        <select id="branch-select" onchange="fetchTables()">
+            <option value="">--Select Branch--</option>
+        </select>
+
+        <br><br>
+        
+        <label for="table-select">Available Tables:</label>
+        <select id="table-select">
+            <option value="">--Select Table--</option>
+        </select>
+    </div>
+    <div class="powered-by">
+        <span>Powered by</span><br>
+        <span class="blinking-text">Department of DataScience</span>
+    </div>
+
+    <div class="container">
+        <h2>Upload or Capture Image</h2>
++
+        <!-- File Upload Option -->
+        <input type="file" id="imageUpload" accept="image/*" multiple>
+        <button onclick="uploadImage()">Upload Image</button>
+
+        <br><br>
+
+        <!-- Webcam Capture Option -->
+        <video id="webcam" width="320" height="240" autoplay></video>
+        <button onclick="captureImage()">Capture from Webcam</button>
+        <canvas id="canvas" class="hidden"></canvas>
+
+        <br><br>
+
+        <!-- Submit Button -->
+        <button id="submit-btn">Submit</button>
+
+        <br><br>
+        <button onclick="window.location.href='index.html'">Back to Home</button>
+    </div>
+    <div class="powered-by">
+        <span>Powered by</span><br>
+        <span class="blinking-text">Department of DataScience</span>
+    </div>
+</body>
+</html>
+
+    <script>
+        let savedRollNumber = null;
+
+        document.addEventListener("DOMContentLoaded", fetchBranches);
+
+        function fetchBranches() {
+    fetch("http://localhost:5000/get-branches")  // Ensure this URL is correct
+        .then(response => response.json())
+        .then(data => {
+            const branchSelect = document.getElementById("branch-select");
+            branchSelect.innerHTML = '<option value="">--Select Branch--</option>';
+            data.branches.forEach(branch => {
+                let option = document.createElement("option");
+                option.value = branch;
+                option.textContent = branch;
+                branchSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error("Error fetching branches:", error));
+}
+
+
+
+
+function fetchTables() {
+    const branchSelect = document.getElementById("branch-select");
+    const selectedBranch = branchSelect.value;
+
+    if (!selectedBranch) {
+        alert("Please select a branch.");
+        return;
+    }
+
+    fetch(`http://localhost:5000/get-tables?branch=${selectedBranch}`)
+        .then(response => response.json())
+        .then(data => {
+            const tableSelect = document.getElementById("table-select");
+            tableSelect.innerHTML = '<option value="">--Select Table--</option>';
+            
+            if (data.tables.length === 0) {
+                alert("No tables available for the selected branch.");
+            } else {
+                data.tables.forEach(table => {
+                    let option = document.createElement("option");
+                    option.value = table;
+                    option.textContent = table;
+                    tableSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error("Error fetching tables:", error));
+}
+document.addEventListener("DOMContentLoaded", function () {
+    const branchSelect = document.getElementById("branch-select");
+    const tableSelect = document.getElementById("table-select");
+    const tableNameInput = document.getElementById("table-name");
+
+    function updateTableNameInput() {
+        if (!branchSelect.value || tableSelect.value) {
+            tableNameInput.disabled = true;
+            tableNameInput.value = ""; // Clear input if disabled
+        } else {
+            tableNameInput.disabled = false;
+        }
+    }
+
+    branchSelect.addEventListener("change", updateTableNameInput);
+    tableSelect.addEventListener("change", updateTableNameInput);
+});
+
+navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                document.getElementById('webcam').srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Webcam access denied:", err);
+            });
+
+        function captureImage() {
+            let video = document.getElementById('webcam');
+            let canvas = document.getElementById('canvas');
+            let context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            let imageData = canvas.toDataURL('image/png');
+
+            fetch("http://127.0.0.1:5000/upload-webcam", {  
+                method: "POST",  
+                headers: { "Content-Type": "application/json" },  
+                body: JSON.stringify({ image: imageData })  
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("Error uploading webcam image:", error));
+        }
+
+        function uploadImage() {
+    let fileInput = document.getElementById("imageUpload");
+    let files = fileInput.files; // Get all selected files
+
+    if (files.length === 0) {
+        alert("Please select at least one image.");
+        return;
+    }
+
+    let formData = new FormData();
+    
+    // Append all selected images to the formData
+    for (let i = 0; i < files.length; i++) {
+        formData.append("files", files[i]);  // Keep the key name "files"
+    }
+
+    fetch("http://127.0.0.1:5000/upload-files", {  // Update endpoint to handle multiple files
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => alert(data.message))
+    .catch(error => console.error("Error uploading files:", error));
+}
+
+
+document.getElementById("submit-btn").addEventListener("click", function () {
+console.log(document.getElementById("submit-btn"));
+
+      
+const branch = document.getElementById("branch-select").value;
+const table = document.getElementById("table-select").value;
+
+
+
+console.log(`Branch: ${branch}, Table: ${table}`); // Debugging
+
+        if (!branch|| !table  ) {
+            alert("Branch, table, or roll number is missing. Please go back and select again.");
+            return;
+        }
+
+        // Send data to backend for cropping faces
+        fetch("http://127.0.0.1:5000/check-faces", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ branch, table }),
+        })
+        .then(response => response.json())
+        .then(data => alert(data.message || data.error))
+        .catch(error => console.error("Error cropping faces:", error));
+    });
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #preview-container {
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+        #preview {
+            max-width: 300px;
+            max-height: 300px;
+            border: 2px solid #ddd;
+            margin-top: 10px;
+        }
+        video {
+            width: 320px;
+            height: 240px;
+            border: 2px solid black;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Training Section</h1>
+    
+    <h2>Upload or Capture Image</h2>
+
+    <!-- File Upload -->
+    <input type="file" id="imageUpload" accept="image/*">
+    <button onclick="previewUpload()">Preview Upload</button>
+    <br><br>
+
+    <!-- Webcam Capture -->
+    <video id="webcam" autoplay></video>
+    <button onclick="captureImage()">Capture</button>
+
+    <!-- Preview Section -->
+    <div id="preview-container">
+        <h3>Image Preview</h3>
+        <img id="preview" src="" alt="Image Preview">
+        <br>
+        <button onclick="uploadConfirmedImage()">Upload</button>
+        <button onclick="clearPreview()">Clear</button>
+    </div>
+
+    <br>
+    <button onclick="window.location.href='index.html'">Back to Home</button>
+</div>
+
+<script>
+    let video = document.getElementById("webcam");
+    let selectedImage = null;
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => { video.srcObject = stream; })
+        .catch(err => console.error("Webcam access denied:", err));
+
+    // Preview uploaded image
+    function previewUpload() {
+        let fileInput = document.getElementById("imageUpload");
+        let file = fileInput.files[0];
+
+        if (!file) {
+            alert("Please select an image first.");
+            return;
+        }
+
+        let reader = new FileReader();
+        reader.onload = function(event) {
+            document.getElementById("preview").src = event.target.result;
+            document.getElementById("preview-container").style.display = "block";
+            selectedImage = file;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Capture image and allow preview
+    function captureImage() {
+    let canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    let ctx = canvas.getContext("2d");
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    let imageData = canvas.toDataURL("image/png");
+
+    document.getElementById("preview").src = imageData;
+    document.getElementById("preview-container").style.display = "block";
+    selectedImage = imageData;
+
+    // Send image to backend for face detection
+    fetch("http://127.0.0.1:5000/Take-webcam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: selectedImage })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.faces.length > 0) {
+            drawBoundingBoxes(data.faces);
+            alert("Faces detected and uploaded successfully!");
+        } else {
+            alert("No faces detected!");
+        }
+    })
+    .catch(error => console.error("Error:", error));
+}
+
+function drawBoundingBoxes(faces) {
+    let img = document.getElementById("preview");
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext("2d");
+
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+
+    faces.forEach(face => {
+        ctx.strokeRect(face.x, face.y, face.width, face.height);
+    });
+
+    img.src = canvas.toDataURL("image/png");
+}
+
+    // Upload the confirmed image
+    function uploadConfirmedImage() {
+        if (!selectedImage) {
+            alert("No image selected.");
+            return;
+        }
+
+        if (typeof selectedImage === "string") {  // Webcam image
+            fetch("http://127.0.0.1:5000/Take-webcam", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: selectedImage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                clearPreview();
+            })
+            .catch(error => console.error("Error:", error));
+        } else {  // Uploaded file
+            let formData = new FormData();
+            formData.append("files", selectedImage);
+
+            fetch("http://127.0.0.1:5000/Take-files", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                clearPreview();
+            })
+            .catch(error => console.error("Error uploading file:", error));
+        }
+    }
+
+    // Clear preview
+    function clearPreview() {
+        document.getElementById("preview").src = "";
+        document.getElementById("preview-container").style.display = "none";
+        selectedImage = null;
+    }
+</script>
+
+</body>
+</html>
